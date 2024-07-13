@@ -19,12 +19,20 @@ const { open } = require("sqlite");
     return null;
   }
 
-  async function parseVegetarian(phrase) {
-    return (await phrase) === "Vegetarian: no" ? false : true;
+  function parseVegetarian(phrase) {
+    if (phrase) {
+      return phrase.includes("no") ? false : true;
+    } else {
+      return null;
+    }
   }
 
-  async function parseVegan(phrase) {
-    return (await phrase) === "Vegan: no" ? false : true;
+  function parseVegan(phrase) {
+    if (phrase) {
+      return phrase.includes("no") ? false : true;
+    } else {
+      return null;
+    }
   }
 
   await db.exec(`
@@ -51,7 +59,7 @@ const { open } = require("sqlite");
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext();
   const page = await context.newPage();
-  const numberOfPages = 20;
+  const numberOfPages = 200;
 
   for (let currentPage = 1; currentPage <= numberOfPages; currentPage++) {
     await page.goto(`https://www.cheese.com/?per_page=100&page=${currentPage}`);
@@ -135,6 +143,7 @@ const { open } = require("sqlite");
         cheesePage,
         "#collapse-information > div > ul > li.summary_vegan > p"
       );
+
       family = await getElementTextIfExists(
         cheesePage,
         "#collapse-information > div > ul > li.summary_family > p"
@@ -163,8 +172,8 @@ const { open } = require("sqlite");
         flavour,
         aroma,
         synonyms,
-        isVegetarian: await parseVegetarian(isVegetarian),
-        isVegan: await parseVegan(isVegan),
+        isVegetarian: parseVegetarian(isVegetarian),
+        isVegan: parseVegan(isVegan),
         family,
         region,
         imageURL,

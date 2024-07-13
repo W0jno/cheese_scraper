@@ -6,7 +6,7 @@ const { open } = require("sqlite");
   const cheesesDetails = [];
 
   const db = await open({
-    filename: "./cheeseDB.sqlite",
+    filename: "./cheeseDB.db",
     driver: sqlite3.Database,
   });
 
@@ -19,7 +19,14 @@ const { open } = require("sqlite");
     return null;
   }
 
-  // Tworzenie tabeli 'cheese', jeśli nie istnieje
+  async function parseVegetarian(phrase) {
+    return (await phrase) === "Vegetarian: no" ? false : true;
+  }
+
+  async function parseVegan(phrase) {
+    return (await phrase) === "Vegan: no" ? false : true;
+  }
+
   await db.exec(`
     CREATE TABLE IF NOT EXISTS cheese (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -33,127 +40,144 @@ const { open } = require("sqlite");
       flavour TEXT,
       aroma TEXT,
       synonyms TEXT,
-      isVegetarian TEXT,
-      isVegan TEXT,
+      isVegetarian TINYINT,
+      isVegan TINYINT,
       family TEXT,
-      region TEXT
+      region TEXT,
+      imageURL TEXT
     )
   `);
 
-  const browser = await chromium.launch({ headless: false });
+  const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext();
   const page = await context.newPage();
+  const numberOfPages = 20;
 
-  await page.goto(`https://www.cheese.com/?per_page=100&page=1`);
-  await page.waitForLoadState("load");
-  await page.click("#cmpwelcomebtnyes > a");
-  await page.click("#PopupSignupForm_0 > div.mc-modal > button");
+  for (let currentPage = 1; currentPage <= numberOfPages; currentPage++) {
+    await page.goto(`https://www.cheese.com/?per_page=100&page=${currentPage}`);
+    console.log(
+      `Current page: https://www.cheese.com/?per_page=100&page=${currentPage}`
+    );
+    await page.waitForLoadState("load");
 
-  const cheesesElements = await page.$$(".cheese-item > h3 > a");
+    if (currentPage == 1) {
+      await page.click("#cmpwelcomebtnyes > a");
+      await page.click("#PopupSignupForm_0 > div.mc-modal > button");
+    }
 
-  for (const cheeseElement of cheesesElements) {
-    const cheesePage = await context.newPage();
+    const cheesesElements = await page.$$(".cheese-item > h3 > a");
 
-    // Otwieranie strony z szczegółami sera
-    await cheesePage.goto(
-      `https://www.cheese.com${await cheeseElement.getAttribute("href")}`
-    );
-    await cheesePage.waitForLoadState("load");
+    for (const cheeseElement of cheesesElements) {
+      const cheesePage = await context.newPage();
+      const href = await cheeseElement.getAttribute("href");
 
-    let name = null,
-      ingredients = null,
-      country = null,
-      type = null,
-      texture = null,
-      rind = null,
-      colour = null,
-      flavour = null,
-      aroma = null,
-      synonyms = null,
-      isVegetarian = null,
-      isVegan = null,
-      family = null,
-      region = null;
+      await cheesePage.goto(`https://www.cheese.com${href}`);
+      await cheesePage.waitForLoadState("load");
 
-    name = await getElementTextIfExists(cheesePage, "h1");
-    ingredients = await getElementTextIfExists(
-      cheesePage,
-      "#collapse-information > div > ul > li.summary_milk > p"
-    );
-    country = await getElementTextIfExists(
-      cheesePage,
-      "#collapse-information > div > ul > li.summary_country > p"
-    );
-    type = await getElementTextIfExists(
-      cheesePage,
-      "#collapse-information > div > ul > li.summary_moisture_and_type > p"
-    );
-    texture = await getElementTextIfExists(
-      cheesePage,
-      "#collapse-information > div > ul > li.summary_texture > p"
-    );
-    rind = await getElementTextIfExists(
-      cheesePage,
-      "#collapse-information > div > ul > li.summary_rind > p"
-    );
-    colour = await getElementTextIfExists(
-      cheesePage,
-      "#collapse-information > div > ul > li.summary_tint > p"
-    );
-    flavour = await getElementTextIfExists(
-      cheesePage,
-      "#collapse-information > div > ul > li.summary_taste > p"
-    );
-    aroma = await getElementTextIfExists(
-      cheesePage,
-      "#collapse-information > div > ul > li.summary_smell > p"
-    );
-    synonyms = await getElementTextIfExists(
-      cheesePage,
-      "#collapse-information > div > ul > li.summary_synonym > p"
-    );
-    isVegetarian = await getElementTextIfExists(
-      cheesePage,
-      "#collapse-information > div > ul > li.summary_vegetarian > p"
-    );
-    isVegan = await getElementTextIfExists(
-      cheesePage,
-      "#collapse-information > div > ul > li.summary_vegan > p"
-    );
-    family = await getElementTextIfExists(
-      cheesePage,
-      "#collapse-information > div > ul > li.summary_family > p"
-    );
-    region = await getElementTextIfExists(
-      cheesePage,
-      "#collapse-information > div > ul > li.summary_region > p"
-    );
+      let name = null,
+        ingredients = null,
+        country = null,
+        type = null,
+        texture = null,
+        rind = null,
+        colour = null,
+        flavour = null,
+        aroma = null,
+        synonyms = null,
+        isVegetarian = null,
+        isVegan = null,
+        family = null,
+        region = null,
+        imageURL = null;
 
-    cheesesDetails.push({
-      name,
-      ingredients,
-      country,
-      type,
-      texture,
-      rind,
-      colour,
-      flavour,
-      aroma,
-      synonyms,
-      isVegetarian,
-      isVegan,
-      family,
-      region,
-    });
+      name = await getElementTextIfExists(cheesePage, "h1");
+      ingredients = await getElementTextIfExists(
+        cheesePage,
+        "#collapse-information > div > ul > li.summary_milk > p"
+      );
+      country = await getElementTextIfExists(
+        cheesePage,
+        "#collapse-information > div > ul > li.summary_country > p"
+      );
+      type = await getElementTextIfExists(
+        cheesePage,
+        "#collapse-information > div > ul > li.summary_moisture_and_type > p"
+      );
+      texture = await getElementTextIfExists(
+        cheesePage,
+        "#collapse-information > div > ul > li.summary_texture > p"
+      );
+      rind = await getElementTextIfExists(
+        cheesePage,
+        "#collapse-information > div > ul > li.summary_rind > p"
+      );
+      colour = await getElementTextIfExists(
+        cheesePage,
+        "#collapse-information > div > ul > li.summary_tint > p"
+      );
+      flavour = await getElementTextIfExists(
+        cheesePage,
+        "#collapse-information > div > ul > li.summary_taste > p"
+      );
+      aroma = await getElementTextIfExists(
+        cheesePage,
+        "#collapse-information > div > ul > li.summary_smell > p"
+      );
+      synonyms = await getElementTextIfExists(
+        cheesePage,
+        "#collapse-information > div > ul > li.summary_synonym > p"
+      );
+      isVegetarian = await getElementTextIfExists(
+        cheesePage,
+        "#collapse-information > div > ul > li.summary_vegetarian > p"
+      );
+      isVegan = await getElementTextIfExists(
+        cheesePage,
+        "#collapse-information > div > ul > li.summary_vegan > p"
+      );
+      family = await getElementTextIfExists(
+        cheesePage,
+        "#collapse-information > div > ul > li.summary_family > p"
+      );
+      region = await getElementTextIfExists(
+        cheesePage,
+        "#collapse-information > div > ul > li.summary_region > p"
+      );
 
-    await cheesePage.close();
+      if (await cheesePage.$("div.cheese-image-border a img")) {
+        imageURL = await cheesePage.$eval(
+          "div.cheese-image-border a img",
+          (img) => img.src
+        );
+      } else {
+        imageURL = null;
+      }
+      cheesesDetails.push({
+        name,
+        ingredients,
+        country,
+        type,
+        texture,
+        rind,
+        colour,
+        flavour,
+        aroma,
+        synonyms,
+        isVegetarian: await parseVegetarian(isVegetarian),
+        isVegan: await parseVegan(isVegan),
+        family,
+        region,
+        imageURL,
+      });
+
+      await cheesePage.close();
+    }
   }
 
-  /* 
   for (const cheese of cheesesDetails) {
     await db.run(
-      `INSERT INTO cheese (name, ingredients, country, type, texture, rind, colour, flavour, aroma, synonyms, isVegetarian, isVegan, family, region) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO cheese (name, ingredients, country, type, texture, rind, colour, flavour, aroma, synonyms, isVegetarian, isVegan, family, region, imageURL) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         cheese.name,
         cheese.ingredients,
@@ -169,9 +193,10 @@ const { open } = require("sqlite");
         cheese.isVegan,
         cheese.family,
         cheese.region,
+        cheese.imageURL,
       ]
     );
-  } */
+  }
 
   console.log(cheesesDetails);
   await browser.close();

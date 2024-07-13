@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS `cheeseDB`.`cheese` (
   `isVegan` TINYINT NULL,
   `family` VARCHAR(100) NULL,
   `region` VARCHAR(300) NULL,
+  `imageURL` VARCHAR(500) NULL,
   PRIMARY KEY (`id`),
   UNIQUE INDEX `id_UNIQUE` (`id` ASC) VISIBLE)
 ENGINE = InnoDB

@@ -4,7 +4,7 @@
             "previewLimit": 50,
             "driver": "SQLite",
             "name": "cheeseDB",
-            "database": "${workspaceFolder:cheese_scraper}/cheese.sql"
+            "database": "${workspaceFolder:cheese_scraper}/cheeseDB.db"
         }
     ]
 }

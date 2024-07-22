@@ -59,7 +59,7 @@ const { open } = require("sqlite");
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext();
   const page = await context.newPage();
-  const numberOfPages = 200;
+  const numberOfPages = 20;
 
   for (let currentPage = 1; currentPage <= numberOfPages; currentPage++) {
     await page.goto(`https://www.cheese.com/?per_page=100&page=${currentPage}`);
